@@ -43,7 +43,7 @@ export GCC_HOST_COMPILER_PATH=$(which gcc)
 
 # Here you can edit this variable to set any optimizations you want.
 # export CC_OPT_FLAGS="-march=native"
-export CC_OPT_FLAGS="-mtune=generic"
+export CC_OPT_FLAGS="-mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4a -msse4.1 -msse4.2 -mavx -mavx2 -mfpmath=both"
 
 if [ "$USE_GPU" -eq "1" ]; then
   # Cuda parameters
