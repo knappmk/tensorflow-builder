@@ -12,8 +12,18 @@ function export_env() {
     export $key="$value"
   done < $envFile
 }
+function build_image() {
+    # clone tensorflow github repository containing Dockerfile
+    echo ">> Clone tensorflow for build Dockerfile"
+    if [[ -d "tensorflow" ]]; then
+        rm -rf "tensorflow"
+    fi
+    git clone --depth 1 --branch ${TF_TAG_DOCKERFILE} "https://github.com/tensorflow/tensorflow.git"
+    docker build --build-arg USE_PYTHON_3_NOT_2=${USE_PYTHON_3_NOT_2} --build-arg BAZEL_VERSION -f tensorflow/tensorflow/tools/dockerfiles/dockerfiles/devel-${HW_TYPE}.Dockerfile -t tensorflow-builder:${TF_TAG_DOCKERFILE}-${HW_TYPE} tensorflow/tensorflow/tools/dockerfiles
+    rm -rf "tensorflow"
+}
 function start_container() {
-    docker run -v "$(pwd)/wheels:/wheels" -v "$(pwd):/scripts" -v "$(pwd)/tensorflow:/tensorflow" --env-file "$(pwd)/.env" -it --name tensorflow-${HW_TYPE}-build-${TENSORFLOW_TAG} tensorflow-${HW_TYPE}-builder:${TENSORFLOW_TAG} bash /scripts/build.sh
+    docker run -v "$(pwd)/wheels:/wheels" -v "$(pwd):/scripts" --env-file "$(pwd)/.env" -it --name tensorflow-build-${HW_TYPE}-${TF_TAG} tensorflow-builder:${TF_TAG_DOCKERFILE}-${HW_TYPE} bash /scripts/build.sh
 }
 
 export_env
@@ -23,41 +33,37 @@ if [[ "${USE_GPU}" -eq "1" ]]; then
 else
     HW_TYPE=cpu
 fi
-
-# Clone tensorflow github repo
-echo ">> Clone tensorflow repo"
-if [[ ! -d "tensorflow" ]]; then
-    git clone --depth 1 --branch ${TENSORFLOW_TAG} "https://github.com/tensorflow/tensorflow.git"
+if [[ ! -n ${TF_TAG_DOCKERFILE} ]]; then
+    export TF_TAG_DOCKERFILE=${TF_TAG}
 fi
 
 # build docker image for build
 echo ">> Build docker image for build"
-if [[ "$(docker images -q tensorflow-gpu-builder:${TENSORFLOW_TAG} 2> /dev/null)" == "" ]]; then
-    docker build --build-arg USE_PYTHON_3_NOT_2=${USE_PYTHON_3_NOT_2} -f tensorflow/tensorflow/tools/dockerfiles/dockerfiles/devel-${HW_TYPE}.Dockerfile -t tensorflow-${HW_TYPE}-builder:${TENSORFLOW_TAG} tensorflow/tensorflow/tools/dockerfiles
+if [[ "$(docker images -q tensorflow-gpu-builder:${TF_TAG} 2> /dev/null)" == "" ]]; then
+    build_image
+else
+    read -p "Should the image be rebuild [yN]? " yn
+    case $yn in
+        [Yy]* ) build_image;;
+        * ) ;;
+    esac
 fi
 
 # run build in docker
 echo ">> Run build inside container"
-if [[ "$(docker ps -aq -f name=tensorflow-${HW_TYPE}-build-${TENSORFLOW_TAG})" ]]; then
-    while true; do
-        read -p "Should the container be deleted first?" yn
-        case $yn in
-            [Yy]* ) docker rm tensorflow-${HW_TYPE}-build-${TENSORFLOW_TAG}; start_container; break;;
-            [Nn]* ) docker start -ai tensorflow-${HW_TYPE}-build-${TENSORFLOW_TAG}; break;;
-            * ) echo "Please answer yes or no.";;
-        esac
-    done
+if [[ "$(docker ps -aq -f name=tensorflow-build-${HW_TYPE}-${TF_TAG})" ]]; then
+    read -p "Should the existing container be deleted first [yN]? " yn
+    case $yn in
+        [Yy]* ) docker rm tensorflow-build-${HW_TYPE}-${TF_TAG}; start_container;;
+        * ) docker start -ai tensorflow-build-${HW_TYPE}-${TF_TAG};;
+    esac
 else
     start_container
 fi
 
 # docker clean up
 echo ">> Docker cleanup"
-docker rm tensorflow-${HW_TYPE}-build-${TENSORFLOW_TAG}
-docker rmi tensorflow-${HW_TYPE}-builder:${TENSORFLOW_TAG}
-
-# folder cleanup
-echo ">> Deleting tensorflow repo"
-rm -rf tensorflow
+docker rm tensorflow-build-${HW_TYPE}-${TF_TAG}
+docker rmi tensorflow-builder:${TF_TAG_DOCKERFILE}-${HW_TYPE}
 
 exit 0
