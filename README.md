@@ -14,7 +14,9 @@ The script is designed to create a `.whl` file which can be installed via `pip`.
    ```bash
    git clone https://github.com/knappmk/tensorflow-builder.git
    ```
-1. Modify `.env` to set general build parameters (`TENSORFLOW_TAG` works with tags and branches)
+1. Modify `.env` to set general build parameters (`TF_TAG` works with tags and branches) <br>
+   _Hint for building with GPU support:_<br>
+   Check out for which CUDA version you want to build the wheel file. If you want to replace the existing TensorFlow pip package, have a look at the [release notes](https://github.com/tensorflow/tensorflow/releases) to figure out for which CUDA and cuDNN version it was build. After finding the relevant versions check out if the [`devel-gpu.Dockerfile`](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/devel-gpu.Dockerfile) file contains matching versions (select your desired branch or tag first). If not you might consider using a version of the Dockerfile in another branch or tag therefore set `TF_TAG_DOCKERFILE` and `TF_BAZEL_VERSION` accordingly. Especially use the same Bazel version as used in the desired build version of TensorFlow (can also be found in the original Dockerfile).
 1. Edit the bash script `build.sh` to modify TensorFlow compilation parameters
 1. Start the procedure by invoking the bash script `start.sh`
    ```bash
@@ -33,24 +35,25 @@ The script is designed to create a `.whl` file which can be installed via `pip`.
   ```
 - The compilation can take very long depending on your parameters
 - The final file can be found in the `wheels` folder
+- Tested TensorFlow build configurations can be found [here](https://www.tensorflow.org/install/source#tested_build_configurations)
 
 ## Procedure
 
 The shell script will perform the following tasks:
 - Clone TensorFlow github repository to a local folder
 - Build the docker image using the `Dockerfile` provided by the TensorFlow repository (not all versions are available on [hub.docker.com](https://hub.docker.com/r/tensorflow/tensorflow/))
-- Install NCCL in container (if GPU version selected)
-- Start the build process in that container
+- Start the build process in a container
 - Store the final `whl` file in the mounted directory
 - Cleanup docker
 - Remove cloned repository
 
 ## Tested parameters
 
-| Tensorflow | Python |  GPU | Bazel optional parameters | Comment |
-| --- | --- | --- | --- | --- |
-| v2.1.0 | 3 | Yes | --config=noaws --config=nogcp --config=nohdfs --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-mfpmath=both --copt=-msse4.1 --copt=-msse4.2 | OK |
-| v2.1.0 | 3 | No | --config=noaws --config=nogcp --config=nohdfs --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-mfpmath=both --copt=-msse4.1 --copt=-msse4.2 | pending |
+| TF | Python |  GPU | TF Dockerfile | Bazel version | Bazel optional parameters | Comment |
+| --- | --- | --- | --- | --- | --- | --- |
+| v2.1.0 | 3 | Yes | v2.1.0 | 0.29.1 | --config=noaws --config=nogcp --config=nohdfs --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-mfpmath=both --copt=-msse4.1 --copt=-msse4.2 | OK |
+| v2.1.0 | 3 | No | v2.1.0 | 0.29.1 | --config=noaws --config=nogcp --config=nohdfs --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-mfpmath=both --copt=-msse4.1 --copt=-msse4.2 | OK |
+| v2.1.0 | 3 | Yes | r2.2 | 0.29.1 | --config=noaws --config=nogcp --config=nohdfs --config=nonccl --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-mfpmath=both --copt=-msse4.1 --copt=-msse4.2 | OK |
 
 ## Credits
 
