@@ -1,11 +1,10 @@
 #!/usr/bash
 set -e
 
-if [ "$USE_GPU" -eq "1" ]; then
-  apt update && apt install -y libnccl2 libnccl-dev && rm -rf /var/lib/lists/*
-  export NCCL_VERSION=$(dpkg-query -W -f='${Version}\n' libnccl2 | sed 's/^\([0-9]\.[0-9]\)\..*/\1/')
+cd /
+if [[ ! -d "tensorflow" ]]; then
+  git clone --depth 1 --branch ${TF_TAG} "https://github.com/tensorflow/tensorflow.git"
 fi
-
 TF_ROOT=/tensorflow
 cd $TF_ROOT
 
@@ -18,9 +17,9 @@ export PYTHON_ARG=${TF_ROOT}/lib
 # Compilation parameters
 # Some parameters might be depricated in newer versions of TensorFlow
 export TF_NEED_CUDA=0
-export TF_NEED_GCP=1  # might get disabled using --config=nogcp
+export TF_NEED_GCP=0  # might get disabled using --config=nogcp
 export TF_CUDA_COMPUTE_CAPABILITIES=7.5,7.0,6.1,5.2,5.0,3.5,3.0
-export TF_NEED_HDFS=1  # might get disabled using --config=nohdfs
+export TF_NEED_HDFS=0  # might get disabled using --config=nohdfs
 export TF_NEED_OPENCL=0
 export TF_NEED_JEMALLOC=1  # Need to be disabled on CentOS 6.6
 export TF_ENABLE_XLA=0
@@ -55,7 +54,7 @@ if [ "$USE_GPU" -eq "1" ]; then
   # export TF_CUDNN_VERSION="$CUDNN_VERSION"
   export TF_NEED_CUDA=1
   export TF_NEED_TENSORRT=0
-  export TF_NCCL_VERSION=$NCCL_VERSION
+  # export TF_NCCL_VERSION=$NCCL_VERSION
   # export NCCL_INSTALL_PATH=$CUDA_HOME
 
   # Those two lines are important for the linking step.
@@ -81,7 +80,7 @@ if [ "$USE_GPU" -eq "1" ]; then
               //tensorflow/tools/pip_package:build_pip_package
 
   PACKAGE_NAME=tensorflow-gpu
-  SUBFOLDER_NAME="${TENSORFLOW_TAG}"
+  SUBFOLDER_NAME="${TF_TAG}"
 
 else
 
@@ -97,7 +96,7 @@ else
               //tensorflow/tools/pip_package:build_pip_package
 
   PACKAGE_NAME=tensorflow
-  SUBFOLDER_NAME="${TENSORFLOW_TAG}"
+  SUBFOLDER_NAME="${TF_TAG}"
 
 fi
 
