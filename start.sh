@@ -61,9 +61,4 @@ else
     start_container
 fi
 
-# docker clean up
-echo ">> Docker cleanup"
-docker rm tensorflow-build-${HW_TYPE}-${TF_TAG}
-docker rmi tensorflow-builder:${TF_TAG_DOCKERFILE}-${HW_TYPE}
-
 exit 0

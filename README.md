@@ -33,6 +33,10 @@ For GPU support defaults for compute capabilities are:
    ```bash
    bash start.sh
    ```
+1. After a successfull build cleanup temporary stuff by running `cleanup.sh` (this script depends on variables defined in `.env` file)
+   ```bash
+   bash cleanup.sh
+   ```
 
 ## Hints
 
@@ -53,17 +57,20 @@ For GPU support defaults for compute capabilities are:
 
 ## Procedure
 
-The shell script will perform the following tasks:
-- Clone TensorFlow github repository to a local folder
-- Build the docker image using the `Dockerfile` provided by the TensorFlow repository (not all versions are available on [hub.docker.com](https://hub.docker.com/r/tensorflow/tensorflow/))
-- Start the build process in a container
-- Store the final `whl` file in the mounted directory
-- Cleanup docker
-- Remove cloned repository
+This section lists shell scripts an their associated tasks:
+- `start.sh`
+  - Clone TensorFlow github repository to a local folder
+  - Build the docker image using the `Dockerfile` provided by the TensorFlow repository (not all versions are available on [hub.docker.com](https://hub.docker.com/r/tensorflow/tensorflow/))
+  - Remove cloned repository
+  - Start the build process in a container
+  - Store the final `whl` file in the mounted directory
+- `cleanup.sh`
+  - Remove docker build container
+  - Remove docker build image
 
 ## Tested parameters
 
-| TF | Python |  GPU | TF Dockerfile | Bazel version | Bazel optional parameters | Comment |
+| TF | Python |  GPU | TF Build Dockerfile | Bazel version | Bazel optional parameters | Comment |
 | --- | --- | --- | --- | --- | --- | --- |
 | v2.1.0 | 3 | Yes | v2.1.0 | 0.29.1 | --config=noaws --config=nogcp --config=nohdfs | OK |
 | v2.1.0 | 3 | No | v2.1.0 | 0.29.1 | --config=noaws --config=nogcp --config=nohdfs | OK |
