@@ -39,7 +39,7 @@ fi
 
 # build docker image for build
 echo ">> Build docker image for build"
-if [[ "$(docker images -q tensorflow-gpu-builder:${TF_TAG} 2> /dev/null)" == "" ]]; then
+if [[ "$(docker images -q tensorflow-builder:${TF_TAG_DOCKERFILE}-${HW_TYPE} 2> /dev/null)" == "" ]]; then
     build_image
 else
     read -p "Should the image be rebuild [yN]? " yn

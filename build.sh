@@ -1,12 +1,18 @@
 #!/usr/bash
 set -e
 
+if [[ "${USE_GPU}" = "1" ]] && [[ "${USE_NVIDIA_NCCL}" = "1" ]]; then
+  apt update && apt install -y libnccl2 libnccl-dev && rm -rf /var/lib/lists/*
+  export NCCL_VERSION=$(dpkg-query -W -f='${Version}\n' libnccl2 | sed 's/^\([0-9]\.[0-9]\)\..*/\1/')
+fi
 cd /
 if [[ ! -d "tensorflow" ]]; then
   git clone --depth 1 --branch ${TF_TAG} "https://github.com/tensorflow/tensorflow.git"
 fi
 TF_ROOT=/tensorflow
 cd $TF_ROOT
+
+export TMP=/tmp
 
 # Python path options
 export PYTHON_BIN_PATH=$(which python)
@@ -45,7 +51,7 @@ export GCC_HOST_COMPILER_PATH=$(which gcc)
 # export CC_OPT_FLAGS="-march=native"
 export CC_OPT_FLAGS="-mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4a -msse4.1 -msse4.2 -mavx -mavx2 -mfpmath=both"
 
-if [ "$USE_GPU" -eq "1" ]; then
+if [[ "$USE_GPU" = "1" ]]; then
   # Cuda parameters
   export CUDA_HOME="/usr/local/cuda"
   export CUDA_TOOLKIT_PATH=$CUDA_HOME
@@ -54,8 +60,13 @@ if [ "$USE_GPU" -eq "1" ]; then
   # export TF_CUDNN_VERSION="$CUDNN_VERSION"
   export TF_NEED_CUDA=1
   export TF_NEED_TENSORRT=0
-  # export TF_NCCL_VERSION=$NCCL_VERSION
-  # export NCCL_INSTALL_PATH=$CUDA_HOME
+
+  if [[ "${USE_NVIDIA_NCCL}" = "1" ]]; then
+    export TF_NCCL_VERSION=$NCCL_VERSION
+    # export NCCL_INSTALL_PATH=$CUDA_HOME
+  else
+    export BAZEL_OPT_ARGS="${BAZEL_OPT_ARGS} --config=nonccl"
+  fi
 
   # Those two lines are important for the linking step.
   export LD_LIBRARY_PATH="$CUDA_TOOLKIT_PATH/lib64:${LD_LIBRARY_PATH}"
